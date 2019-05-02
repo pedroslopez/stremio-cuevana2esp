@@ -1,0 +1,17 @@
+{
+	"name": "stremio-addon-cuevana2esp",
+	"version": "0.0.1",
+	"description": "Browse and watch movies in spanish!",
+	"author": "Pedro S. Lopez",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pedroslopez/stremio-cuevana2esp.git"
+	  },
+	"scripts": {
+		"start": "node server.js"
+	},
+	"dependencies": {
+		"stremio-addon-sdk": "1.1.x"
+	}
+}
