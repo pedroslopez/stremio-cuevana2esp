@@ -20,8 +20,6 @@ const getTopCatalog = async () => {
         movies.push(movie);
     });
 
-    movies.push({type: 'movie', id: 'c2e_dd', name:'test'});
-
     return movies;
 }
 
