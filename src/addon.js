@@ -1,4 +1,5 @@
 const { addonBuilder } = require("stremio-addon-sdk")
+const { getTopCatalog, getMovieMeta } = require('./cuevana');
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
@@ -26,26 +27,19 @@ const manifest = {
 }
 const builder = new addonBuilder(manifest);
 
-const getMoviesCatalog = (catalogName) => {
+const getMoviesCatalog = async (catalogName) => {
 	let catalog;
 
 	switch (catalogName) {
 		case "top":
-			catalog = [
-				{
-					id: "c2e_bbb",
-					type: "movie",
-					name: "Jellyfish",
-					poster: "https://cuevana2espanol.com/wp-content/uploads/2019/04/bIDRyNDCrupfDdzP1AlsCYjGXE3-185x278.jpg"
-				}
-			];
+			catalog = await getTopCatalog();
 			break;
 		default:
 			catalog = [];
 			break;
 	}
 
-	return Promise.resolve(catalog);
+	return catalog;
 }
 
 builder.defineCatalogHandler(({type, id}) => {
@@ -65,45 +59,24 @@ builder.defineCatalogHandler(({type, id}) => {
 	return results.then(metas => ({metas}))
 })
 
-const getMovieMeta = id => {
-	console.log(id);
-	const metas = {
-		c2e_bbb: {
-            id: "c2e_bbb",
-            type: "movie",
-            name: "Jellyfish",
-			poster: "https://cuevana2espanol.com/wp-content/uploads/2019/04/bIDRyNDCrupfDdzP1AlsCYjGXE3-185x278.jpg",
-            genres: ["Demo", "Nature"],
-            description: "A .mkv video clip useful for testing the network streaming and playback performance of media streamers & HTPCs.",
-            cast: ["Some random jellyfishes"],
-            director: ["ScottAllyn"],
-            background: "https://image.tmdb.org/t/p/original/lFwykSz3Ykj1Q3JXJURnGUTNf1o.jpg",
-            runtime: "30 sec"
-        },
-	}
 
-	console.log(metas[id]);
-
-	return Promise.resolve(metas[id] || null);
-}
-
-builder.defineMetaHandler(({type, id}) => {
+builder.defineMetaHandler(async ({type, id}) => {
 	console.log("request for meta: "+type+" "+id)
 	
-	let results;
+	let result;
 
 	switch(type) {
 		case 'movie':
-			results = getMovieMeta(id);
+			result = await getMovieMeta(id);
 			break;
 		default:
-			results = null;
+			result = null;
 			break;
 	}
 
-	console.log('RESULT HANDLER', results);
+	console.log('RESULT HANDLER', result);
 
-	return results.then(meta => ({meta}));
+	return {meta: result};
 })
 
-module.exports = builder.getInterface()
+module.exports = builder.getInterface();
