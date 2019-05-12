@@ -1,5 +1,5 @@
 const { addonBuilder } = require("stremio-addon-sdk")
-const { getTopCatalog, getMovieMeta } = require('./cuevana');
+const { getTopCatalog, getMovieMeta, getMovieStreams, searchMovies } = require('./cuevana');
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
@@ -8,20 +8,19 @@ const manifest = {
 	"catalogs": [
 		{
 			"type": "movie",
-			"id": "top"
+			"id": "top",
+			"extra": [
+				{ "name": "search", "isRequired": false }
+			]
 		}
 	],
 	"resources": [
 		"catalog",
-		{
-			"name": "meta",
-			"types": ["movie"],
-			"idPrefixes": ["c2e_"]
-		}
+		"meta",
+		"stream"
 	],
-	"types": [
-		"movie"
-	],
+	"types": ["movie"],
+	"idPrefixes": ["c2e_"],
 	"name": "cuevana2esp",
 	"description": "Browse and watch movies in spanish!"
 }
@@ -42,41 +41,64 @@ const getMoviesCatalog = async (catalogName) => {
 	return catalog;
 }
 
-builder.defineCatalogHandler(({type, id}) => {
-	console.log("request for catalogs: "+type+" "+id)
+builder.defineCatalogHandler(({type, id, extra}) => {
+	console.log("request for catalogs: "+type+" "+id, extra)
 
 	let results;
 
 	switch(type) {
 		case "movie":
-			results = getMoviesCatalog(id);
+			if(extra && extra.search) {
+				results = searchMovies(extra.search);
+			} else {
+				results = getMoviesCatalog(id);
+			}
+			
 			break;
 		default:
 			results = Promise.resolve([]);
 			break;
 	}
 
-	return results.then(metas => ({metas}))
-})
+	return results.then(metas => ({ metas }))
+});
 
 
 builder.defineMetaHandler(async ({type, id}) => {
 	console.log("request for meta: "+type+" "+id)
 	
-	let result;
+	let meta;
 
 	switch(type) {
 		case 'movie':
-			result = await getMovieMeta(id);
+			meta = await getMovieMeta(id);
 			break;
 		default:
-			result = null;
+			meta = null;
 			break;
 	}
 
-	console.log('RESULT HANDLER', result);
+	console.log('RESULT HANDLER', meta);
 
-	return {meta: result};
-})
+	return { meta };
+});
+
+builder.defineStreamHandler(async ({type, id}) => {
+	console.log("request for stream: "+type+" "+id);
+
+	let streams;
+
+	switch(type) {
+		case 'movie':
+			streams = await getMovieStreams(id);
+
+			break;
+		default:
+			streams = [];
+	}
+
+	console.log('STREAM HANDLER', streams);
+	return { streams };
+});
 
 module.exports = builder.getInterface();
