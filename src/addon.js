@@ -1,7 +1,6 @@
 const { addonBuilder } = require("stremio-addon-sdk")
 const { getTopCatalog, getMovieMeta, getMovieStreams, searchMovies } = require('./cuevana');
 
-// Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
 	"id": "me.pedroslopez.cuevana2esp",
 	"version": "1.0.0",
