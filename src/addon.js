@@ -3,7 +3,7 @@ const { getTopCatalog, getMovieMeta, getMovieStreams, searchMovies } = require('
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
-	"id": "community.cuevana2esp",
+	"id": "me.pedroslopez.cuevana2esp",
 	"version": "0.0.1",
 	"catalogs": [
 		{
@@ -21,8 +21,8 @@ const manifest = {
 	],
 	"types": ["movie"],
 	"idPrefixes": ["c2e_"],
-	"name": "cuevana2esp",
-	"description": "Browse and watch movies in spanish!"
+	"name": "Cuevana2 Español",
+	"description": "Películas en español desde cuevana2espanol.com"
 }
 const builder = new addonBuilder(manifest);
 
@@ -41,32 +41,28 @@ const getMoviesCatalog = async (catalogName) => {
 	return catalog;
 }
 
-builder.defineCatalogHandler(({type, id, extra}) => {
-	console.log("request for catalogs: "+type+" "+id, extra)
-
+builder.defineCatalogHandler(async ({type, id, extra}) => {
 	let results;
 
 	switch(type) {
 		case "movie":
 			if(extra && extra.search) {
-				results = searchMovies(extra.search);
+				results = await searchMovies(extra.search);
 			} else {
-				results = getMoviesCatalog(id);
+				results = await getMoviesCatalog(id);
 			}
 			
 			break;
 		default:
-			results = Promise.resolve([]);
+			results = [];
 			break;
 	}
 
-	return results.then(metas => ({ metas }))
+	return { metas: results };
 });
 
 
 builder.defineMetaHandler(async ({type, id}) => {
-	console.log("request for meta: "+type+" "+id)
-	
 	let meta;
 
 	switch(type) {
@@ -78,14 +74,10 @@ builder.defineMetaHandler(async ({type, id}) => {
 			break;
 	}
 
-	console.log('RESULT HANDLER', meta);
-
 	return { meta };
 });
 
 builder.defineStreamHandler(async ({type, id}) => {
-	console.log("request for stream: "+type+" "+id);
-
 	let streams;
 
 	switch(type) {
@@ -97,7 +89,6 @@ builder.defineStreamHandler(async ({type, id}) => {
 			streams = [];
 	}
 
-	console.log('STREAM HANDLER', streams);
 	return { streams };
 });
 
