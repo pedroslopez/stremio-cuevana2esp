@@ -4,7 +4,7 @@ const { ID_PREFIX, IMDB_PREFIX } = require('./constants');
 
 const manifest = {
 	"id": "me.pedroslopez.cuevana2esp",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"catalogs": [
 		{
 			"type": "movie",
@@ -30,7 +30,8 @@ const manifest = {
 	],
 	"types": ["movie"],
 	"name": "Cuevana2 Español",
-	"description": "Películas en español desde cuevana2espanol.com"
+	"description": "Películas en español desde cuevana2espanol.com",
+	"logo": "https://github.com/pedroslopez/stremio-cuevana2esp/raw/master/c2elogo.png"
 }
 const builder = new addonBuilder(manifest);
 
