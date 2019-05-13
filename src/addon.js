@@ -1,5 +1,6 @@
 const { addonBuilder } = require("stremio-addon-sdk")
 const { getTopCatalog, getMovieMeta, getMovieStreams, searchMovies } = require('./cuevana');
+const { ID_PREFIX, IMDB_PREFIX } = require('./constants');
 
 const manifest = {
 	"id": "me.pedroslopez.cuevana2esp",
@@ -15,11 +16,19 @@ const manifest = {
 	],
 	"resources": [
 		"catalog",
-		"meta",
-		"stream"
+		"catalog",
+		{
+			"name": "meta",
+			"types": ["movie"],
+			"idPrefixes": [ID_PREFIX]
+		},
+		{
+			"name": "stream",
+			"types": ["movie"],
+			"idPrefixes": [ID_PREFIX, IMDB_PREFIX]
+		}
 	],
 	"types": ["movie"],
-	"idPrefixes": ["c2e_"],
 	"name": "Cuevana2 Español",
 	"description": "Películas en español desde cuevana2espanol.com"
 }

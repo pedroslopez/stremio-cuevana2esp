@@ -1,9 +1,19 @@
 const cloudscraper = require('cloudscraper');
 const cheerio = require('cheerio');
 const url = require('url');
+const { compareTwoStrings } = require('string-similarity');
+
+const { 
+    ID_PREFIX, 
+    IMDB_PREFIX, 
+    CUEVANA_URL, 
+    CUEVANA_PLAYER_URL, 
+    TMDB_API_KEY, 
+    IMDB_SIMILARITY_THRESHOLD 
+} = require('./constants');
 
 const getTopCatalog = async () => {
-    const res = await cloudscraper.get('https://cuevana2espanol.com/calificaciones/');
+    const res = await cloudscraper.get(CUEVANA_URL + '/calificaciones/');
     const $ = cheerio.load(res);
 
     let movies = [];
@@ -12,7 +22,7 @@ const getTopCatalog = async () => {
 
         let movie = {
             type: 'movie',
-            id: 'c2e_' + $el.find('.data h3 a').attr('href'),
+            id: ID_PREFIX + $el.find('.data h3 a').attr('href'),
             name: $el.find('.data h3 a').text(),
             poster: $el.find('.poster img').attr('src'),
             year: $el.find('.data span').text()
@@ -25,7 +35,7 @@ const getTopCatalog = async () => {
 }
 
 const searchMovies = async (searchTerm) => {
-    const res = await cloudscraper.get('https://cuevana2espanol.com/?s=' + encodeURIComponent(searchTerm));
+    const res = await cloudscraper.get(CUEVANA_URL + '?s=' + encodeURIComponent(searchTerm));
     const $ = cheerio.load(res);
 
     let movies = [];
@@ -34,7 +44,7 @@ const searchMovies = async (searchTerm) => {
 
         let movie = {
             type: 'movie',
-            id: 'c2e_' + $el.find('.details .title a').attr('href'),
+            id: ID_PREFIX + $el.find('.details .title a').attr('href'),
             name: $el.find('.details .title a').text(),
             poster: $el.find('.image img').attr('src'),
             year: $el.find('.details .meta .year').text()
@@ -47,7 +57,7 @@ const searchMovies = async (searchTerm) => {
 }
 
 const getMovieMeta = async (movieId) => {
-    const pageUrl = movieId.substring(4);
+    const pageUrl = movieId.substring(ID_PREFIX.length);
     const res = await cloudscraper.get(pageUrl);
     const $ = cheerio.load(res);
 
@@ -64,7 +74,7 @@ const getMovieMeta = async (movieId) => {
 
 const getVideo = async (fileId) => {
     const res = await cloudscraper.post({
-        uri: 'https://player.cuevana2espanol.com/plugins/gkpluginsphp.php',
+        uri: CUEVANA_PLAYER_URL + 'plugins/gkpluginsphp.php',
         formData: { link: fileId }
     });
 
@@ -77,8 +87,50 @@ const getVideo = async (fileId) => {
     return false;
 }
 
-const getMovieStreams = async (movieId) => {
-    const pageUrl = movieId.substring(4);
+const getTMDBReqUrl = (imdbUrl) => 
+    `https://api.themoviedb.org/3/find/${imdbUrl}?api_key=${TMDB_API_KEY}&language=es&external_source=imdb_id`;
+
+const matchToCuevana = async (title, year) => {
+    const cuevanaSearch = await searchMovies(title);
+
+    for(let i=0; i<cuevanaSearch.length && i<3; i++) {
+        let result = cuevanaSearch[i];
+        const similarity = compareTwoStrings(title, result.name);
+        const sameYear = !year || result.year == year;
+        
+        if(similarity > IMDB_SIMILARITY_THRESHOLD && sameYear) {
+            return result.id;
+        } 
+    }
+}
+
+const getImdbStreams = async (imdbId) => {
+    let res = await cloudscraper.get(getTMDBReqUrl(imdbId));
+    res = JSON.parse(res);
+
+    if(res.movie_results && res.movie_results[0]) {
+        const tmdb = res.movie_results[0];
+
+        // Match Translated
+        const searchYear = tmdb.release_date.split('-')[0];
+        let match = await matchToCuevana(tmdb.title, searchYear);
+
+        if(!match && tmdb.title != tmdb.original_title) {
+            // Try matching with original name
+            match = await matchToCuevana(tmdb.original_title, searchYear);
+        }
+
+        if(match) {
+            return await getCuevanaStreams(match);
+        }
+  
+    }
+    
+    return [];
+}
+
+const getCuevanaStreams = async (movieId) => {
+    const pageUrl = movieId.substring(ID_PREFIX.length);
     const res = await cloudscraper.get(pageUrl);
     const $ = cheerio.load(res);
 
@@ -89,7 +141,7 @@ const getMovieStreams = async (movieId) => {
         let $el = $(element);
 
         let frameUrl = $el.attr('src');
-        if(!frameUrl.startsWith('https://player.cuevana2espanol.com/index')) {
+        if(!frameUrl.startsWith(CUEVANA_PLAYER_URL + 'index')) {
             return;
         }
 
@@ -105,7 +157,7 @@ const getMovieStreams = async (movieId) => {
         }
 
         let stream = {
-            title: $('.idTabs.sourceslist li a').eq(index).text().trim(),
+            title: $('.idTabs.sourceslist li a').eq(index).text().trim() + '\n🇪🇸 Español',
             url: videoUrl
         }
         
@@ -115,6 +167,16 @@ const getMovieStreams = async (movieId) => {
     await Promise.all(promises);
     return streams;
     
+}
+
+const getMovieStreams = async (id) => {
+    if(id.startsWith(ID_PREFIX)) {
+        return await getCuevanaStreams(id);
+    } else if(id.startsWith(IMDB_PREFIX) && TMDB_API_KEY) {
+        return await getImdbStreams(id);
+    }
+
+    return [];
 }
 
 module.exports = { getTopCatalog, getMovieMeta, getMovieStreams, searchMovies };

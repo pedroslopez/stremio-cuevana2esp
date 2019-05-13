@@ -1,6 +1,6 @@
 {
 	"name": "stremio-addon-cuevana2esp",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Browse and watch movies in spanish!",
 	"author": "Pedro S. Lopez",
 	"license": "MIT",
@@ -15,6 +15,7 @@
 		"cheerio": "^1.0.0-rc.3",
 		"cloudscraper": "^4.1.0",
 		"request": "^2.88.0",
-		"stremio-addon-sdk": "1.1.x"
+		"stremio-addon-sdk": "1.1.x",
+		"string-similarity": "^3.0.0"
 	}
 }
